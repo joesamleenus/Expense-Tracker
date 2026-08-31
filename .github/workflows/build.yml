@@ -13,7 +13,6 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
 
       # This repo only stores the app's Dart code (lib/, pubspec.yaml).
