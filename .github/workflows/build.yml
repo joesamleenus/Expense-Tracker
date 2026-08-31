@@ -22,7 +22,7 @@ jobs:
       - name: Generate the Android project folder
         run: |
           if [ ! -d "android" ]; then
-            flutter create --platforms=android --org com.joe.expensetracker .
+               flutter create --platforms=android --org com.joe.expensetracker --project-name expense_tracker .
           fi
 
       - name: Get dependencies
