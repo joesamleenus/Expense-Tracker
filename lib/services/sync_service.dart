@@ -6,20 +6,24 @@ class SyncService {
   static const String scriptUrl = 'https://script.google.com/macros/s/AKfycbw_H_AYhANgDcfI_YKMRKCobFGCoPSvqz8qBHfbgLYNQ9t_tHUcNXs-NWycl_ubLWA9Tg/exec';
   static const String secret = 'Joe';
 
-  // Remembers exactly what went wrong last time, instead of hiding it.
   static String? lastError;
 
   Future<bool> send(Expense expense) async {
     try {
-      final bodyJson = jsonEncode({
-        'secret': secret,
-        'category': expense.category,
-        'amount': expense.amount,
-        'notes': expense.notes,
-        'timestamp': expense.createdAt.toIso8601String(),
-      });
-
-      final response = await _postFollowingRedirects(Uri.parse(scriptUrl), bodyJson);
+      final response = await http
+          .post(
+            Uri.parse(scriptUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'secret': secret,
+              'clientId': expense.createdAt.toIso8601String(),
+              'category': expense.category,
+              'amount': expense.amount,
+              'notes': expense.notes,
+              'timestamp': expense.createdAt.toIso8601String(),
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -35,37 +39,6 @@ class SyncService {
     } catch (e) {
       lastError = e.toString();
       return false;
-    }
-  }
-
-  Future<http.Response> _postFollowingRedirects(Uri url, String body) async {
-    final client = http.Client();
-    try {
-      var request = http.Request('POST', url)
-        ..headers['Content-Type'] = 'application/json'
-        ..body = body
-        ..followRedirects = false;
-
-      var streamed = await client.send(request).timeout(const Duration(seconds: 15));
-      var response = await http.Response.fromStream(streamed);
-
-      int redirects = 0;
-      while ((response.statusCode == 301 || response.statusCode == 302 || response.statusCode == 303) &&
-          response.headers['location'] != null &&
-          redirects < 5) {
-        final nextUrl = Uri.parse(response.headers['location']!);
-        var nextRequest = http.Request('POST', nextUrl)
-          ..headers['Content-Type'] = 'application/json'
-          ..body = body
-          ..followRedirects = false;
-        streamed = await client.send(nextRequest).timeout(const Duration(seconds: 15));
-        response = await http.Response.fromStream(streamed);
-        redirects++;
-      }
-
-      return response;
-    } finally {
-      client.close();
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
@@ -43,6 +44,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void _openEntry(CategoryInfo category) {
+    HapticFeedback.lightImpact();
     Navigator.of(context)
         .push(
           PageRouteBuilder(
@@ -63,53 +65,69 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('What did you spend on?', style: Theme.of(context).textTheme.headlineMedium),
-              if (_pendingCount > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.cloud_off_rounded, size: 16, color: Colors.orange),
-                      const SizedBox(width: 6),
-                      Text('$_pendingCount waiting to sync', style: const TextStyle(color: Colors.orange, fontSize: 13)),
-                    ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEDEBFF), Color(0xFFF7F7FB)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('What did you spend on?', style: Theme.of(context).textTheme.headlineMedium),
+                if (_pendingCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cloud_off_rounded, size: 15, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Text('$_pendingCount waiting to sync', style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                if (_lastError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Sync error: $_lastError', style: const TextStyle(color: Colors.red, fontSize: 10)),
+                  ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const crossAxisCount = 3;
+                      const spacing = 14.0;
+                      final rows = (kCategories.length / crossAxisCount).ceil();
+                      final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+                      final tileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
+                      return GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: kCategories.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          mainAxisSpacing: spacing,
+                          crossAxisSpacing: spacing,
+                          childAspectRatio: tileWidth / tileHeight,
+                        ),
+                        itemBuilder: (context, index) {
+                          final category = kCategories[index];
+                          return _AnimatedCategoryCard(
+                            category: category,
+                            delay: index * 55,
+                            onTap: () => _openEntry(category),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
-              if (_lastError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Sync error: $_lastError',
-                    style: const TextStyle(color: Colors.red, fontSize: 11),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: GridView.builder(
-                  itemCount: kCategories.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                  ),
-                  itemBuilder: (context, index) {
-                    final category = kCategories[index];
-                    return _AnimatedCategoryCard(
-                      category: category,
-                      delay: index * 60,
-                      onTap: () => _openEntry(category),
-                    );
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -137,9 +155,9 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    _fade = CurvedAnimation(parent: _controller, curve: const Interval(0, 0.6, curve: Curves.easeOut));
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.forward();
     });
@@ -163,27 +181,36 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
           onTapCancel: () => setState(() => _pressed = false),
           onTap: widget.onTap,
           child: AnimatedScale(
-            scale: _pressed ? 0.94 : 1.0,
-            duration: const Duration(milliseconds: 120),
+            scale: _pressed ? 0.92 : 1.0,
+            duration: const Duration(milliseconds: 110),
+            curve: Curves.easeOut,
             child: Container(
               decoration: BoxDecoration(
-                color: widget.category.color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: widget.category.color.withOpacity(0.25)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.category.color.withOpacity(0.18),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(color: widget.category.color, shape: BoxShape.circle),
-                    child: Icon(widget.category.icon, color: Colors.white, size: 26),
+                    child: Icon(widget.category.icon, color: Colors.white, size: 20),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     widget.category.name,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: widget.category.color.withOpacity(0.9)),
+                    maxLines: 2,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: widget.category.color.withOpacity(0.95)),
                   ),
                 ],
               ),
