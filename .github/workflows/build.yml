@@ -15,14 +15,15 @@ jobs:
         with:
           channel: 'stable'
 
-      # This repo only stores the app's Dart code (lib/, pubspec.yaml).
-      # The android/ folder is regenerated fresh every build, since it's
-      # just standard boilerplate Flutter creates automatically.
       - name: Generate the Android project folder
         run: |
           if [ ! -d "android" ]; then
-               flutter create --platforms=android --org com.joe.expensetracker --project-name expense_tracker .
+            flutter create --platforms=android --org com.joe.expensetracker --project-name expense_tracker .
           fi
+
+      - name: Grant internet permission
+        run: |
+          sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
       - name: Get dependencies
         run: flutter pub get
