@@ -15,6 +15,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   final _storage = StorageService();
   final _sync = SyncService();
   int _pendingCount = 0;
+  String? _lastError;
 
   @override
   void initState() {
@@ -22,17 +23,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
     _retryPending();
   }
 
-  // Whenever the app opens, quietly try to send anything saved locally
-  // from a time when there was no internet.
   Future<void> _retryPending() async {
     final pending = await _storage.getPending();
     if (!mounted) return;
-    setState(() => _pendingCount = pending.length);
+    setState(() {
+      _pendingCount = pending.length;
+      _lastError = null;
+    });
     for (final expense in pending) {
       final ok = await _sync.send(expense);
       if (ok) {
         await _storage.removePending(expense);
         if (mounted) setState(() => _pendingCount--);
+      } else {
+        if (mounted) setState(() => _lastError = SyncService.lastError);
+        break;
       }
     }
   }
@@ -74,6 +79,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       const SizedBox(width: 6),
                       Text('$_pendingCount waiting to sync', style: const TextStyle(color: Colors.orange, fontSize: 13)),
                     ],
+                  ),
+                ),
+              if (_lastError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Sync error: $_lastError',
+                    style: const TextStyle(color: Colors.red, fontSize: 11),
                   ),
                 ),
               const SizedBox(height: 20),
