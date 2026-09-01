@@ -6,6 +6,9 @@ class SyncService {
   static const String scriptUrl = 'https://script.google.com/macros/s/AKfycbw_H_AYhANgDcfI_YKMRKCobFGCoPSvqz8qBHfbgLYNQ9t_tHUcNXs-NWycl_ubLWA9Tg/exec';
   static const String secret = 'Joe';
 
+  // Remembers exactly what went wrong last time, instead of hiding it.
+  static String? lastError;
+
   Future<bool> send(Expense expense) async {
     try {
       final bodyJson = jsonEncode({
@@ -20,17 +23,21 @@ class SyncService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['status'] == 'success';
+        if (data['status'] == 'success') {
+          lastError = null;
+          return true;
+        }
+        lastError = 'Sheet said: ${data['message'] ?? 'unknown error'}';
+        return false;
       }
+      lastError = 'Server responded with code ${response.statusCode}';
       return false;
-    } catch (_) {
+    } catch (e) {
+      lastError = e.toString();
       return false;
     }
   }
 
-  // Google always redirects this kind of request once. This follows
-  // that redirect manually, making sure it stays a POST (with your data
-  // intact) instead of silently becoming an empty GET request.
   Future<http.Response> _postFollowingRedirects(Uri url, String body) async {
     final client = http.Client();
     try {
