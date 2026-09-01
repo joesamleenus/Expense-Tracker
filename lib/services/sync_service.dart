@@ -9,21 +9,25 @@ class SyncService {
   static String? lastError;
 
   Future<bool> send(Expense expense) async {
+    final client = http.Client();
     try {
-      final response = await http
-          .post(
-            Uri.parse(scriptUrl),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'secret': secret,
-              'clientId': expense.createdAt.toIso8601String(),
-              'category': expense.category,
-              'amount': expense.amount,
-              'notes': expense.notes,
-              'timestamp': expense.createdAt.toIso8601String(),
-            }),
-          )
+      final body = jsonEncode({
+        'secret': secret,
+        'clientId': expense.createdAt.toIso8601String(),
+        'category': expense.category,
+        'amount': expense.amount,
+        'notes': expense.notes,
+        'timestamp': expense.createdAt.toIso8601String(),
+      });
+
+      var response = await client
+          .post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: body)
           .timeout(const Duration(seconds: 20));
+
+      if ((response.statusCode == 301 || response.statusCode == 302 || response.statusCode == 303) &&
+          response.headers['location'] != null) {
+        response = await client.get(Uri.parse(response.headers['location']!)).timeout(const Duration(seconds: 20));
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -39,6 +43,8 @@ class SyncService {
     } catch (e) {
       lastError = e.toString();
       return false;
+    } finally {
+      client.close();
     }
   }
 }

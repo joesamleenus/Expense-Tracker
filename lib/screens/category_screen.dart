@@ -99,33 +99,42 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      const crossAxisCount = 3;
-                      const spacing = 14.0;
-                      final rows = (kCategories.length / crossAxisCount).ceil();
-                      final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
-                      final tileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
-                      return GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: kCategories.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: spacing,
-                          crossAxisSpacing: spacing,
-                          childAspectRatio: tileWidth / tileHeight,
-                        ),
-                        itemBuilder: (context, index) {
-                          final category = kCategories[index];
-                          return _AnimatedCategoryCard(
-                            category: category,
-                            delay: index * 55,
-                            onTap: () => _openEntry(category),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
+  builder: (context, constraints) {
+    const crossAxisCount = 3;
+    const spacing = 14.0;
+    const preferredRatio = 1.05;
+    final rows = (kCategories.length / crossAxisCount).ceil();
+    final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+    final maxTileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
+    final preferredHeight = tileWidth / preferredRatio;
+    final tileHeight = preferredHeight <= maxTileHeight ? preferredHeight : maxTileHeight;
+    final aspectRatio = tileWidth / tileHeight;
+    return Center(
+      child: SizedBox(
+        width: constraints.maxWidth,
+        height: tileHeight * rows + spacing * (rows - 1),
+        child: GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: kCategories.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final category = kCategories[index];
+            return _AnimatedCategoryCard(
+              category: category,
+              delay: index * 55,
+              onTap: () => _openEntry(category),
+            );
+          },
+        ),
+      ),
+    );
+  },
+),
               ],
             ),
           ),
@@ -201,9 +210,9 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: widget.category.color, shape: BoxShape.circle),
-                    child: Icon(widget.category.icon, color: Colors.white, size: 20),
+                    child: Icon(widget.category.icon, color: Colors.white, size: 22),
                   ),
                   const SizedBox(height: 8),
                   Text(
