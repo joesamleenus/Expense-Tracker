@@ -113,7 +113,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     builder: (context, constraints) {
                       const crossAxisCount = 3;
                       const spacing = 14.0;
-                      const preferredRatio = 0.95;
+                      const preferredRatio = 1.05;
                       final rows = (kCategories.length / crossAxisCount).ceil();
                       final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
                       final maxTileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
