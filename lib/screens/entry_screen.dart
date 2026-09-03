@@ -20,7 +20,6 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
   final _sync = SyncService();
   late final AnimationController _successController;
 
-  bool _saving = false;
   bool _saved = false;
   String? _error;
 
@@ -44,11 +43,6 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
       return;
     }
 
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-
     final expense = Expense(
       category: widget.category.name,
       amount: amount,
@@ -56,21 +50,26 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
       createdAt: DateTime.now(),
     );
 
+    // Save locally first — this alone guarantees nothing is ever lost.
     await _storage.addPending(expense);
-    final synced = await _sync.send(expense);
-    if (synced) {
-      await _storage.removePending(expense);
-    }
 
-    if (!mounted) return;
+    // Show success right away. The trip to Google Sheets happens
+    // quietly in the background — you don't need to wait and watch it.
     HapticFeedback.lightImpact();
+    if (!mounted) return;
     setState(() {
-      _saving = false;
+      _error = null;
       _saved = true;
     });
     _successController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 900));
+    _sync.send(expense).then((synced) async {
+      if (synced) {
+        await _storage.removePending(expense);
+      }
+    });
+
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -135,7 +134,7 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _saving || _saved ? null : _onUpdate,
+                      onPressed: _saved ? null : _onUpdate,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: color,
                         elevation: 4,
@@ -143,19 +142,12 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 250),
+                        duration: const Duration(milliseconds: 200),
                         child: _saved
                             ? const Icon(Icons.check_rounded, key: ValueKey('check'), color: Colors.white)
-                            : _saving
-                                ? const SizedBox(
-                                    key: ValueKey('loading'),
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.4),
-                                  )
-                                : const Text('Update',
-                                    key: ValueKey('label'),
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                            : const Text('Update',
+                                key: ValueKey('label'),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                       ),
                     ),
                   ),

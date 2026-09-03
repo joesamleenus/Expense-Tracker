@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
@@ -17,11 +18,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
   final _sync = SyncService();
   int _pendingCount = 0;
   String? _lastError;
+  Timer? _retryTimer;
 
   @override
   void initState() {
     super.initState();
     _retryPending();
+    // Quietly retries every few seconds — the moment your internet
+    // comes back, anything waiting gets sent automatically.
+    _retryTimer = Timer.periodic(const Duration(seconds: 8), (_) => _retryPending());
+  }
+
+  @override
+  void dispose() {
+    _retryTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _retryPending() async {
@@ -99,42 +110,43 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: LayoutBuilder(
-  builder: (context, constraints) {
-    const crossAxisCount = 3;
-    const spacing = 14.0;
-    const preferredRatio = 1.05;
-    final rows = (kCategories.length / crossAxisCount).ceil();
-    final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
-    final maxTileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
-    final preferredHeight = tileWidth / preferredRatio;
-    final tileHeight = preferredHeight <= maxTileHeight ? preferredHeight : maxTileHeight;
-    final aspectRatio = tileWidth / tileHeight;
-    return Center(
-      child: SizedBox(
-        width: constraints.maxWidth,
-        height: tileHeight * rows + spacing * (rows - 1),
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: kCategories.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-            childAspectRatio: aspectRatio,
-          ),
-          itemBuilder: (context, index) {
-            final category = kCategories[index];
-            return _AnimatedCategoryCard(
-              category: category,
-              delay: index * 55,
-              onTap: () => _openEntry(category),
-            );
-          },
-        ),
-      ),
-    );
-  },
-),
+                    builder: (context, constraints) {
+                      const crossAxisCount = 3;
+                      const spacing = 14.0;
+                      const preferredRatio = 0.95;
+                      final rows = (kCategories.length / crossAxisCount).ceil();
+                      final tileWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+                      final maxTileHeight = (constraints.maxHeight - spacing * (rows - 1)) / rows;
+                      final preferredHeight = tileWidth / preferredRatio;
+                      final tileHeight = preferredHeight <= maxTileHeight ? preferredHeight : maxTileHeight;
+                      final aspectRatio = tileWidth / tileHeight;
+                      return Center(
+                        child: SizedBox(
+                          width: constraints.maxWidth,
+                          height: tileHeight * rows + spacing * (rows - 1),
+                          child: GridView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: kCategories.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: spacing,
+                              crossAxisSpacing: spacing,
+                              childAspectRatio: aspectRatio,
+                            ),
+                            itemBuilder: (context, index) {
+                              final category = kCategories[index];
+                              return _AnimatedCategoryCard(
+                                category: category,
+                                delay: index * 55,
+                                onTap: () => _openEntry(category),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -195,12 +207,13 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
             curve: Curves.easeOut,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                color: widget.category.color.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: widget.category.color.withOpacity(0.25)),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.category.color.withOpacity(0.18),
-                    blurRadius: 14,
+                    color: widget.category.color.withOpacity(0.15),
+                    blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
                 ],
@@ -210,16 +223,22 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: widget.category.color, shape: BoxShape.circle),
-                    child: Icon(widget.category.icon, color: Colors.white, size: 22),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: widget.category.color,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: widget.category.color.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3)),
+                      ],
+                    ),
+                    child: Icon(widget.category.icon, color: Colors.white, size: 26),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
                     widget.category.name,
                     textAlign: TextAlign.center,
                     maxLines: 2,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: widget.category.color.withOpacity(0.95)),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: widget.category.color.withOpacity(0.95)),
                   ),
                 ],
               ),
