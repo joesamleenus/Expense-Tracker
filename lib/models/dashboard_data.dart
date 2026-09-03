@@ -20,26 +20,37 @@ class YearData {
       );
 }
 
-class WeekData {
+class WeekEntry {
+  final String weekStart;
   final String weekLabel;
-  final Map<String, double> categories;
   final double total;
-  WeekData({required this.weekLabel, required this.categories, required this.total});
-  factory WeekData.fromJson(Map<String, dynamic> json) => WeekData(
+  final Map<String, double> categories;
+  WeekEntry({required this.weekStart, required this.weekLabel, required this.total, required this.categories});
+  factory WeekEntry.fromJson(Map<String, dynamic> json) => WeekEntry(
+        weekStart: json['weekStart'] as String? ?? '',
         weekLabel: json['weekLabel'] as String? ?? '',
-        categories: (json['categories'] as Map<String, dynamic>? ?? {}).map((k, v) => MapEntry(k, (v as num).toDouble())),
         total: (json['total'] as num?)?.toDouble() ?? 0,
+        categories: (json['categories'] as Map<String, dynamic>? ?? {}).map((k, v) => MapEntry(k, (v as num).toDouble())),
       );
+  Map<String, dynamic> toJson() => {'weekStart': weekStart, 'weekLabel': weekLabel, 'total': total, 'categories': categories};
 }
 
 class DashboardData {
   final List<String> years;
   final Map<String, Map<String, MonthData>> monthly;
   final Map<String, YearData> yearly;
-  final WeekData weekly;
+  final Map<String, Map<String, List<WeekEntry>>> weekly;
+  final Map<String, double> budgets;
   final DateTime lastUpdated;
 
-  DashboardData({required this.years, required this.monthly, required this.yearly, required this.weekly, required this.lastUpdated});
+  DashboardData({
+    required this.years,
+    required this.monthly,
+    required this.yearly,
+    required this.weekly,
+    required this.budgets,
+    required this.lastUpdated,
+  });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
     final monthlyRaw = json['monthly'] as Map<String, dynamic>? ?? {};
@@ -47,14 +58,27 @@ class DashboardData {
           year,
           (monthsJson as Map<String, dynamic>).map((month, data) => MapEntry(month, MonthData.fromJson(data))),
         ));
+
     final yearlyRaw = json['yearly'] as Map<String, dynamic>? ?? {};
     final yearly = yearlyRaw.map((year, data) => MapEntry(year, YearData.fromJson(data)));
+
+    final weeklyRaw = json['weekly'] as Map<String, dynamic>? ?? {};
+    final weekly = weeklyRaw.map((year, monthsJson) => MapEntry(
+          year,
+          (monthsJson as Map<String, dynamic>).map((month, list) => MapEntry(
+                month,
+                (list as List).map((w) => WeekEntry.fromJson(w as Map<String, dynamic>)).toList(),
+              )),
+        ));
+
+    final budgetsRaw = json['budgets'] as Map<String, dynamic>? ?? {};
 
     return DashboardData(
       years: List<String>.from(json['years'] ?? []),
       monthly: monthly,
       yearly: yearly,
-      weekly: WeekData.fromJson(json['weekly'] ?? {}),
+      weekly: weekly,
+      budgets: budgetsRaw.map((k, v) => MapEntry(k, (v as num).toDouble())),
       lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
     );
   }
@@ -63,7 +87,8 @@ class DashboardData {
         'years': years,
         'monthly': monthly.map((y, m) => MapEntry(y, m.map((mo, d) => MapEntry(mo, {'total': d.total, 'categories': d.categories})))),
         'yearly': yearly.map((y, d) => MapEntry(y, {'monthlyTotals': d.monthlyTotals, 'categoryTotals': d.categoryTotals, 'total': d.total})),
-        'weekly': {'weekLabel': weekly.weekLabel, 'categories': weekly.categories, 'total': weekly.total},
+        'weekly': weekly.map((y, m) => MapEntry(y, m.map((mo, list) => MapEntry(mo, list.map((w) => w.toJson()).toList())))),
+        'budgets': budgets,
         'lastUpdated': lastUpdated.toIso8601String(),
       };
 }

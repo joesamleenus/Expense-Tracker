@@ -19,6 +19,7 @@ class _DataScreenState extends State<DataScreen> {
   String? _error;
   String? _selectedYear;
   String _selectedMonth = _monthNames[DateTime.now().month - 1];
+  String? _selectedWeekStart;
 
   static const _monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,12 +33,18 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   Future<void> _loadCached() async {
-    final cached = await _dataService.loadCached();
-    if (cached != null && mounted) {
-      setState(() {
-        _data = cached;
-        _selectedYear = cached.years.isNotEmpty ? cached.years.last : null;
-      });
+    try {
+      final cached = await _dataService.loadCached();
+      if (cached != null && mounted) {
+        setState(() {
+          _data = cached;
+          _selectedYear = cached.years.isNotEmpty ? cached.years.last : null;
+          _selectedWeekStart = null;
+        });
+      }
+    } catch (_) {
+      // Old cached data from before this update won't match the new
+      // format — safely ignore it, Fetch Data will replace it.
     }
   }
 
@@ -52,6 +59,7 @@ class _DataScreenState extends State<DataScreen> {
       setState(() {
         _data = data;
         _selectedYear = data.years.isNotEmpty ? data.years.last : null;
+        _selectedWeekStart = null;
         _loading = false;
       });
     } catch (e) {
@@ -72,11 +80,16 @@ class _DataScreenState extends State<DataScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final data = _data;
+    final year = data != null && data.years.isNotEmpty
+        ? ((_selectedYear != null && data.years.contains(_selectedYear)) ? _selectedYear! : data.years.last)
+        : DateTime.now().year.toString();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7FB),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -86,29 +99,29 @@ class _DataScreenState extends State<DataScreen> {
                   IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: widget.onBack, tooltip: 'Back to categories'),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               _buildFetchBar(),
-              const SizedBox(height: 12),
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text("Couldn't fetch: $_error", style: const TextStyle(color: Colors.red, fontSize: 12)),
                 ),
+              const SizedBox(height: 14),
               Expanded(
-                child: _data == null
+                child: data == null
                     ? _buildEmptyState()
                     : SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildWeeklyCard(_data!),
-                            const SizedBox(height: 20),
-                            _buildYearSelector(_data!),
-                            const SizedBox(height: 16),
-                            _buildMonthlySection(_data!),
-                            const SizedBox(height: 24),
-                            _buildYearlySection(_data!),
+                            _buildFilterRow(data, year),
+                            const SizedBox(height: 14),
+                            _buildWeeklyCard(data, year, _selectedMonth),
+                            const SizedBox(height: 18),
+                            _buildMonthlySection(data, year, _selectedMonth),
+                            const SizedBox(height: 18),
+                            _buildYearlySection(data, year),
                             const SizedBox(height: 12),
                           ],
                         ),
@@ -168,56 +181,47 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 
-  Widget _buildWeeklyCard(DashboardData data) {
-    final week = data.weekly;
-    final entries = week.categories.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
+  Widget _buildFilterRow(DashboardData data, String year) {
+    final years = data.years.isNotEmpty ? data.years : [DateTime.now().year.toString()];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))]),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_month_rounded, size: 18, color: Color(0xFF6C63FF)),
+          const SizedBox(width: 8),
+          const Text('Viewing:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(width: 10),
+          DropdownButton<String>(
+            value: _selectedMonth,
+            underline: const SizedBox(),
+            items: _monthNames.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: (v) => setState(() {
+              _selectedMonth = v!;
+              _selectedWeekStart = null;
+            }),
+          ),
+          const SizedBox(width: 4),
+          DropdownButton<String>(
+            value: year,
+            underline: const SizedBox(),
+            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: (v) => setState(() {
+              _selectedYear = v;
+              _selectedWeekStart = null;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _sectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('This week', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w600)),
-                Text(week.weekLabel, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ]),
-              Text('₹${week.total.toStringAsFixed(0)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (entries.isEmpty)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No expenses logged this week yet.', style: TextStyle(color: Colors.grey)))
-          else
-            SizedBox(
-              height: 160,
-              child: BarChart(BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: entries.first.value * 1.25,
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
-                    final i = value.toInt();
-                    if (i < 0 || i >= entries.length) return const SizedBox.shrink();
-                    final name = entries[i].key;
-                    return Padding(padding: const EdgeInsets.only(top: 6), child: Text(name.length > 8 ? '${name.substring(0, 7)}…' : name, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)));
-                  })),
-                ),
-                barGroups: [for (int i = 0; i < entries.length; i++) BarChartGroupData(x: i, barRods: [BarChartRodData(toY: entries[i].value, color: _colorForCategory(entries[i].key), width: 22, borderRadius: BorderRadius.circular(6))])],
-              )),
-            ),
-          const SizedBox(height: 10),
-          ...entries.map((e) => _legendRow(e.key, e.value)),
-        ],
-      ),
+      child: child,
     );
   }
 
@@ -233,35 +237,84 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 
-  Widget _buildYearSelector(DashboardData data) {
-    final years = data.years.isNotEmpty ? data.years : [DateTime.now().year.toString()];
-    return Row(children: [
-      const Text('Year:', style: TextStyle(fontWeight: FontWeight.w600)),
-      const SizedBox(width: 10),
-      DropdownButton<String>(value: _selectedYear ?? years.last, items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => _selectedYear = v)),
-    ]);
+  Widget _buildWeeklyCard(DashboardData data, String year, String month) {
+    final weeks = data.weekly[year]?[month] ?? [];
+    final selected = weeks.isEmpty
+        ? null
+        : weeks.firstWhere((w) => w.weekStart == _selectedWeekStart, orElse: () => weeks.last);
+
+    final entries = (selected?.categories.entries ?? const <MapEntry<String, double>>[])
+        .where((e) => e.value > 0)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Weekly breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              if (weeks.isNotEmpty)
+                DropdownButton<String>(
+                  value: selected!.weekStart,
+                  underline: const SizedBox(),
+                  items: weeks.map((w) => DropdownMenuItem(value: w.weekStart, child: Text(w.weekLabel, style: const TextStyle(fontSize: 12)))).toList(),
+                  onChanged: (v) => setState(() => _selectedWeekStart = v),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (weeks.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No weeks with data in this month.', style: TextStyle(color: Colors.grey))))
+          else ...[
+            Text('₹${selected!.total.toStringAsFixed(0)} total that week', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
+            const SizedBox(height: 16),
+            if (entries.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No expenses logged that week.', style: TextStyle(color: Colors.grey)))
+            else
+              SizedBox(
+                height: 160,
+                child: BarChart(BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: entries.first.value * 1.25,
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= entries.length) return const SizedBox.shrink();
+                      final name = entries[i].key;
+                      return Padding(padding: const EdgeInsets.only(top: 6), child: Text(name.length > 8 ? '${name.substring(0, 7)}…' : name, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)));
+                    })),
+                  ),
+                  barGroups: [for (int i = 0; i < entries.length; i++) BarChartGroupData(x: i, barRods: [BarChartRodData(toY: entries[i].value, color: _colorForCategory(entries[i].key), width: 22, borderRadius: BorderRadius.circular(6))])],
+                )),
+              ),
+            const SizedBox(height: 10),
+            ...entries.map((e) => _legendRow(e.key, e.value)),
+          ],
+        ],
+      ),
+    );
   }
 
-  Widget _buildMonthlySection(DashboardData data) {
-    final year = _selectedYear ?? (data.years.isNotEmpty ? data.years.last : DateTime.now().year.toString());
-    final monthData = data.monthly[year]?[_selectedMonth];
+  Widget _buildMonthlySection(DashboardData data, String year, String month) {
+    final monthData = data.monthly[year]?[month];
     final categories = monthData?.categories ?? {};
     final total = monthData?.total ?? 0.0;
     final entries = categories.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
+    return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Monthly breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            DropdownButton<String>(value: _selectedMonth, items: _monthNames.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => _selectedMonth = v!)),
-          ]),
-          const SizedBox(height: 4),
-          Text('₹${total.toStringAsFixed(0)} total in $_selectedMonth', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
+          const Text('Monthly breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          Text('₹${total.toStringAsFixed(0)} total in $month', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
           const SizedBox(height: 16),
           if (entries.isEmpty)
             const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No expenses recorded for this month.', style: TextStyle(color: Colors.grey))))
@@ -277,13 +330,62 @@ class _DataScreenState extends State<DataScreen> {
             const SizedBox(height: 12),
             ...entries.map((e) => _legendRow(e.key, e.value)),
           ],
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          const Text('Budget progress', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text('Live from your "Monthly Budget" row in the sheet', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 12),
+          if (data.budgets.isEmpty)
+            const Text('No "Monthly Budget" row found in your sheet.', style: TextStyle(color: Colors.grey, fontSize: 12))
+          else
+            ...kCategories.map((c) {
+              final budget = data.budgets[c.name] ?? 0;
+              final spent = categories[c.name] ?? 0;
+              return _budgetRow(c.name, spent, budget);
+            }),
         ],
       ),
     );
   }
 
-  Widget _buildYearlySection(DashboardData data) {
-    final year = _selectedYear ?? (data.years.isNotEmpty ? data.years.last : DateTime.now().year.toString());
+  Widget _budgetRow(String category, double spent, double budget) {
+    final ratio = budget > 0 ? (spent / budget).clamp(0.0, 1.0) : 0.0;
+    final overBudget = budget > 0 && spent > budget;
+    final barColor = overBudget ? Colors.redAccent : (ratio >= 0.85 ? Colors.orange : _colorForCategory(category));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(category, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                budget > 0 ? '₹${spent.toStringAsFixed(0)} / ₹${budget.toStringAsFixed(0)}' : '₹${spent.toStringAsFixed(0)} (no budget set)',
+                style: TextStyle(fontSize: 12, color: overBudget ? Colors.redAccent : Colors.grey.shade700, fontWeight: overBudget ? FontWeight.w700 : FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: budget > 0 ? ratio : 0,
+              minHeight: 8,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation(barColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYearlySection(DashboardData data, String year) {
     final yearData = data.yearly[year];
     final monthlyTotals = yearData?.monthlyTotals ?? {};
     final categoryTotals = yearData?.categoryTotals ?? {};
@@ -291,10 +393,7 @@ class _DataScreenState extends State<DataScreen> {
     final maxMonthly = monthlyTotals.values.isEmpty ? 1.0 : monthlyTotals.values.reduce((a, b) => a > b ? a : b);
     final categoryEntries = categoryTotals.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
+    return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
