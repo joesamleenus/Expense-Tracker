@@ -42,10 +42,7 @@ class _DataScreenState extends State<DataScreen> {
           _selectedWeekStart = null;
         });
       }
-    } catch (_) {
-      // Old cached data from before this update won't match the new
-      // format — safely ignore it, Fetch Data will replace it.
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetch() async {
@@ -188,14 +185,14 @@ class _DataScreenState extends State<DataScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))]),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month_rounded, size: 18, color: Color(0xFF6C63FF)),
+          const Icon(Icons.calendar_month_rounded, size: 20, color: Color(0xFF6C63FF)),
           const SizedBox(width: 8),
-          const Text('Viewing:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const Text('Viewing:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
           const SizedBox(width: 10),
           DropdownButton<String>(
             value: _selectedMonth,
             underline: const SizedBox(),
-            items: _monthNames.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13)))).toList(),
+            items: _monthNames.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)))).toList(),
             onChanged: (v) => setState(() {
               _selectedMonth = v!;
               _selectedWeekStart = null;
@@ -205,7 +202,7 @@ class _DataScreenState extends State<DataScreen> {
           DropdownButton<String>(
             value: year,
             underline: const SizedBox(),
-            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontSize: 13)))).toList(),
+            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)))).toList(),
             onChanged: (v) => setState(() {
               _selectedYear = v;
               _selectedWeekStart = null;
@@ -260,7 +257,7 @@ class _DataScreenState extends State<DataScreen> {
                 DropdownButton<String>(
                   value: selected!.weekStart,
                   underline: const SizedBox(),
-                  items: weeks.map((w) => DropdownMenuItem(value: w.weekStart, child: Text(w.weekLabel, style: const TextStyle(fontSize: 12)))).toList(),
+                  items: weeks.map((w) => DropdownMenuItem(value: w.weekStart, child: Text(w.weekLabel, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)))).toList(),
                   onChanged: (v) => setState(() => _selectedWeekStart = v),
                 ),
             ],
