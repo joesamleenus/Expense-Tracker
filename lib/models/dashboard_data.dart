@@ -35,12 +35,30 @@ class WeekEntry {
   Map<String, dynamic> toJson() => {'weekStart': weekStart, 'weekLabel': weekLabel, 'total': total, 'categories': categories};
 }
 
+class LogEntry {
+  final String id;
+  final String display;
+  final String category;
+  final double amount;
+  final String notes;
+  LogEntry({required this.id, required this.display, required this.category, required this.amount, required this.notes});
+  factory LogEntry.fromJson(Map<String, dynamic> json) => LogEntry(
+        id: json['id'] as String? ?? '',
+        display: json['display'] as String? ?? '',
+        category: json['category'] as String? ?? '',
+        amount: (json['amount'] as num?)?.toDouble() ?? 0,
+        notes: json['notes'] as String? ?? '',
+      );
+  Map<String, dynamic> toJson() => {'id': id, 'display': display, 'category': category, 'amount': amount, 'notes': notes};
+}
+
 class DashboardData {
   final List<String> years;
   final Map<String, Map<String, MonthData>> monthly;
   final Map<String, YearData> yearly;
   final Map<String, Map<String, List<WeekEntry>>> weekly;
   final Map<String, double> budgets;
+  final List<LogEntry> log;
   final DateTime lastUpdated;
 
   DashboardData({
@@ -49,6 +67,7 @@ class DashboardData {
     required this.yearly,
     required this.weekly,
     required this.budgets,
+    required this.log,
     required this.lastUpdated,
   });
 
@@ -72,6 +91,7 @@ class DashboardData {
         ));
 
     final budgetsRaw = json['budgets'] as Map<String, dynamic>? ?? {};
+    final logRaw = json['log'] as List<dynamic>? ?? [];
 
     return DashboardData(
       years: List<String>.from(json['years'] ?? []),
@@ -79,6 +99,7 @@ class DashboardData {
       yearly: yearly,
       weekly: weekly,
       budgets: budgetsRaw.map((k, v) => MapEntry(k, (v as num).toDouble())),
+      log: logRaw.map((e) => LogEntry.fromJson(e as Map<String, dynamic>)).toList(),
       lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
     );
   }
@@ -89,6 +110,7 @@ class DashboardData {
         'yearly': yearly.map((y, d) => MapEntry(y, {'monthlyTotals': d.monthlyTotals, 'categoryTotals': d.categoryTotals, 'total': d.total})),
         'weekly': weekly.map((y, m) => MapEntry(y, m.map((mo, list) => MapEntry(mo, list.map((w) => w.toJson()).toList())))),
         'budgets': budgets,
+        'log': log.map((e) => e.toJson()).toList(),
         'lastUpdated': lastUpdated.toIso8601String(),
       };
 }

@@ -30,4 +30,33 @@ class DataService {
     await prefs.setString(_cacheKey, jsonEncode(data.toJson()));
     return data;
   }
+
+  Future<bool> editEntry({required String id, required String category, required double amount, required String notes}) async {
+    final response = await http
+        .post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+          'secret': secret,
+          'action': 'edit',
+          'id': id,
+          'category': category,
+          'amount': amount,
+          'notes': notes,
+        }))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) return false;
+    final decoded = jsonDecode(response.body);
+    return decoded['status'] == 'success';
+  }
+
+  Future<bool> deleteEntry(String id) async {
+    final response = await http
+        .post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+          'secret': secret,
+          'action': 'delete',
+          'id': id,
+        }))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) return false;
+    final decoded = jsonDecode(response.body);
+    return decoded['status'] == 'success';
+  }
 }
