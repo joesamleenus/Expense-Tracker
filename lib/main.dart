@@ -34,6 +34,9 @@ class MainTabScaffold extends StatefulWidget {
 class _MainTabScaffoldState extends State<MainTabScaffold> {
   late final PageController _controller;
   int _index = 0;
+  final _dataScreenKey = GlobalKey<DataScreenState>();
+  final _logScreenKey = GlobalKey<LogScreenState>();
+  final _notesScreenKey = GlobalKey<NotesScreenState>();
 
   @override
   void initState() {
@@ -54,6 +57,13 @@ class _MainTabScaffoldState extends State<MainTabScaffold> {
 
   void _onPageChanged(int index) {
     setState(() => _index = index);
+    if (index == 1) {
+      _dataScreenKey.currentState?.silentRefresh();
+    } else if (index == 2) {
+      _logScreenKey.currentState?.silentRefresh();
+    } else if (index == 3) {
+      _notesScreenKey.currentState?.silentRefresh();
+    }
   }
 
   @override
@@ -62,11 +72,11 @@ class _MainTabScaffoldState extends State<MainTabScaffold> {
       body: PageView(
         controller: _controller,
         onPageChanged: _onPageChanged,
-        children: const [
-          CategoryScreen(),
-          DataScreen(),
-          LogScreen(),
-          NotesScreen(),
+        children: [
+          const CategoryScreen(),
+          DataScreen(key: _dataScreenKey),
+          LogScreen(key: _logScreenKey),
+          NotesScreen(key: _notesScreenKey),
         ],
       ),
       bottomNavigationBar: CustomNavBar(currentIndex: _index, onTap: _onTabTapped),

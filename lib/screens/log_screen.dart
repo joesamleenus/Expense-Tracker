@@ -7,10 +7,10 @@ class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
 
   @override
-  State<LogScreen> createState() => _LogScreenState();
+  State<LogScreen> createState() => LogScreenState();
 }
 
-class _LogScreenState extends State<LogScreen> {
+class LogScreenState extends State<LogScreen> {
   final _dataService = DataService();
   final _searchController = TextEditingController();
   DashboardData? _data;
@@ -39,6 +39,7 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> _fetch() async {
+    if (_loading) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -58,6 +59,9 @@ class _LogScreenState extends State<LogScreen> {
       });
     }
   }
+
+  // Called automatically by the tab shell whenever you swipe or tap into this tab.
+  Future<void> silentRefresh() => _fetch();
 
   Color _colorForCategory(String name) {
     for (final c in kCategories) {
@@ -85,21 +89,22 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> _openEdit(LogEntry entry) async {
+    final rootContext = context;
     final amountController = TextEditingController(text: entry.amount.toStringAsFixed(entry.amount.truncateToDouble() == entry.amount ? 0 : 2));
     final notesController = TextEditingController(text: entry.notes);
     String selectedCategory = entry.category;
     bool saving = false;
 
     await showModalBottomSheet(
-      context: context,
+      context: rootContext,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (sheetContext, setModalState) {
             return Padding(
-              padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+              padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,9 +141,14 @@ class _LogScreenState extends State<LogScreen> {
                               if (amount == null || amount <= 0) return;
                               setModalState(() => saving = true);
                               final ok = await _dataService.editEntry(id: entry.id, category: selectedCategory, amount: amount, notes: notesController.text.trim());
-                              if (ok && mounted) {
-                                Navigator.of(context).pop();
-                                _fetch();
+                              if (ok) {
+                                Navigator.of(sheetContext).pop();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                    const SnackBar(content: Text('Expense updated'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating),
+                                  );
+                                }
+                                await _fetch();
                               } else {
                                 setModalState(() => saving = false);
                               }
@@ -159,20 +169,28 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> _confirmDelete(LogEntry entry) async {
+    final rootContext = context;
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: rootContext,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete this entry?'),
         content: Text('₹${entry.amount.toStringAsFixed(0)} · ${entry.category}${entry.notes.isNotEmpty ? ' · ${entry.notes}' : ''}'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
     if (confirmed == true) {
       final ok = await _dataService.deleteEntry(entry.id);
-      if (ok) _fetch();
+      if (ok) {
+        if (mounted) {
+          ScaffoldMessenger.of(rootContext).showSnackBar(
+            const SnackBar(content: Text('Expense deleted'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating),
+          );
+        }
+        await _fetch();
+      }
     }
   }
 
@@ -222,7 +240,7 @@ class _LogScreenState extends State<LogScreen> {
                           children: [
                             Icon(Icons.receipt_long_rounded, size: 56, color: Colors.grey.shade400),
                             const SizedBox(height: 12),
-                            Text('Tap the refresh icon to load your history', style: TextStyle(color: Colors.grey.shade600)),
+                            Text('Loading your history...', style: TextStyle(color: Colors.grey.shade600)),
                           ],
                         ),
                       )

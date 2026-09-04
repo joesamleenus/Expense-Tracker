@@ -59,4 +59,30 @@ class DataService {
     final decoded = jsonDecode(response.body);
     return decoded['status'] == 'success';
   }
+
+  Future<bool> addNote(String text) async {
+    final response = await http
+        .post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+          'secret': secret,
+          'action': 'addNote',
+          'text': text,
+        }))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) return false;
+    final decoded = jsonDecode(response.body);
+    return decoded['status'] == 'success';
+  }
+
+  Future<bool> deleteNote(String id) async {
+    final response = await http
+        .post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+          'secret': secret,
+          'action': 'deleteNote',
+          'id': id,
+        }))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) return false;
+    final decoded = jsonDecode(response.body);
+    return decoded['status'] == 'success';
+  }
 }

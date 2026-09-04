@@ -8,10 +8,10 @@ class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
 
   @override
-  State<DataScreen> createState() => _DataScreenState();
+  State<DataScreen> createState() => DataScreenState();
 }
 
-class _DataScreenState extends State<DataScreen> {
+class DataScreenState extends State<DataScreen> {
   final _dataService = DataService();
   DashboardData? _data;
   bool _loading = false;
@@ -30,6 +30,8 @@ class _DataScreenState extends State<DataScreen> {
     super.initState();
     _loadCached();
   }
+
+  Future<void> silentRefresh() => _fetch();
 
   Future<void> _loadCached() async {
     try {

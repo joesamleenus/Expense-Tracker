@@ -52,6 +52,19 @@ class LogEntry {
   Map<String, dynamic> toJson() => {'id': id, 'display': display, 'category': category, 'amount': amount, 'notes': notes};
 }
 
+class NoteEntry {
+  final String id;
+  final String display;
+  final String text;
+  NoteEntry({required this.id, required this.display, required this.text});
+  factory NoteEntry.fromJson(Map<String, dynamic> json) => NoteEntry(
+        id: json['id'] as String? ?? '',
+        display: json['display'] as String? ?? '',
+        text: json['text'] as String? ?? '',
+      );
+  Map<String, dynamic> toJson() => {'id': id, 'display': display, 'text': text};
+}
+
 class DashboardData {
   final List<String> years;
   final Map<String, Map<String, MonthData>> monthly;
@@ -59,6 +72,7 @@ class DashboardData {
   final Map<String, Map<String, List<WeekEntry>>> weekly;
   final Map<String, double> budgets;
   final List<LogEntry> log;
+  final List<NoteEntry> notes;
   final DateTime lastUpdated;
 
   DashboardData({
@@ -68,6 +82,7 @@ class DashboardData {
     required this.weekly,
     required this.budgets,
     required this.log,
+    required this.notes,
     required this.lastUpdated,
   });
 
@@ -92,6 +107,7 @@ class DashboardData {
 
     final budgetsRaw = json['budgets'] as Map<String, dynamic>? ?? {};
     final logRaw = json['log'] as List<dynamic>? ?? [];
+    final notesRaw = json['notes'] as List<dynamic>? ?? [];
 
     return DashboardData(
       years: List<String>.from(json['years'] ?? []),
@@ -100,6 +116,7 @@ class DashboardData {
       weekly: weekly,
       budgets: budgetsRaw.map((k, v) => MapEntry(k, (v as num).toDouble())),
       log: logRaw.map((e) => LogEntry.fromJson(e as Map<String, dynamic>)).toList(),
+      notes: notesRaw.map((e) => NoteEntry.fromJson(e as Map<String, dynamic>)).toList(),
       lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
     );
   }
@@ -111,6 +128,7 @@ class DashboardData {
         'weekly': weekly.map((y, m) => MapEntry(y, m.map((mo, list) => MapEntry(mo, list.map((w) => w.toJson()).toList())))),
         'budgets': budgets,
         'log': log.map((e) => e.toJson()).toList(),
+        'notes': notes.map((e) => e.toJson()).toList(),
         'lastUpdated': lastUpdated.toIso8601String(),
       };
 }
