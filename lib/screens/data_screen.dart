@@ -5,8 +5,7 @@ import '../models/dashboard_data.dart';
 import '../services/data_service.dart';
 
 class DataScreen extends StatefulWidget {
-  final VoidCallback onBack;
-  const DataScreen({super.key, required this.onBack});
+  const DataScreen({super.key});
 
   @override
   State<DataScreen> createState() => _DataScreenState();
@@ -90,13 +89,8 @@ class _DataScreenState extends State<DataScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(child: Text('Your Expenses', style: Theme.of(context).textTheme.headlineMedium)),
-                  IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: widget.onBack, tooltip: 'Back to categories'),
-                ],
-              ),
-              const SizedBox(height: 6),
+              Text('Breakdown', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 10),
               _buildFetchBar(),
               if (_error != null)
                 Padding(
