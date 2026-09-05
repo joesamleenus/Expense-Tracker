@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/dashboard_data.dart';
+import 'recurring_service.dart';
 
 class DataService {
   static const String scriptUrl = 'https://script.google.com/macros/s/AKfycbw_H_AYhANgDcfI_YKMRKCobFGCoPSvqz8qBHfbgLYNQ9t_tHUcNXs-NWycl_ubLWA9Tg/exec';
@@ -28,6 +29,7 @@ class DataService {
     final data = DashboardData.fromJson(decoded);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_cacheKey, jsonEncode(data.toJson()));
+    await RecurringService().replaceAll(data.recurring);
     return data;
   }
 
@@ -84,5 +86,39 @@ class DataService {
     if (response.statusCode != 200) return false;
     final decoded = jsonDecode(response.body);
     return decoded['status'] == 'success';
+  }
+
+  Future<void> addRecurring({required String id, required String category, required double amount, required String notes}) async {
+    try {
+      await http.post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+        'secret': secret,
+        'action': 'addRecurring',
+        'id': id,
+        'category': category,
+        'amount': amount,
+        'notes': notes,
+      })).timeout(const Duration(seconds: 20));
+    } catch (_) {}
+  }
+
+  Future<void> deleteRecurring(String id) async {
+    try {
+      await http.post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+        'secret': secret,
+        'action': 'deleteRecurring',
+        'id': id,
+      })).timeout(const Duration(seconds: 20));
+    } catch (_) {}
+  }
+
+  Future<void> markRecurringLogged({required String id, required String monthKey}) async {
+    try {
+      await http.post(Uri.parse(scriptUrl), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+        'secret': secret,
+        'action': 'markRecurringLogged',
+        'id': id,
+        'monthKey': monthKey,
+      })).timeout(const Duration(seconds: 20));
+    } catch (_) {}
   }
 }

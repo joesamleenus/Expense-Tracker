@@ -50,11 +50,9 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
       createdAt: DateTime.now(),
     );
 
-    // Save locally first — this alone guarantees nothing is ever lost.
     await _storage.addPending(expense);
+    await _storage.markLoggedToday();
 
-    // Show success right away. The trip to Google Sheets happens
-    // quietly in the background — you don't need to wait and watch it.
     HapticFeedback.lightImpact();
     if (!mounted) return;
     setState(() {

@@ -8,10 +8,10 @@ class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
 
   @override
-  State<DataScreen> createState() => DataScreenState();
+  State<DataScreen> createState() => _DataScreenState();
 }
 
-class DataScreenState extends State<DataScreen> {
+class _DataScreenState extends State<DataScreen> {
   final _dataService = DataService();
   DashboardData? _data;
   bool _loading = false;
@@ -30,8 +30,6 @@ class DataScreenState extends State<DataScreen> {
     super.initState();
     _loadCached();
   }
-
-  Future<void> silentRefresh() => _fetch();
 
   Future<void> _loadCached() async {
     try {
@@ -76,6 +74,26 @@ class DataScreenState extends State<DataScreen> {
     return const Color(0xFF78909C);
   }
 
+  Map<String, dynamic>? _computeTrend(DashboardData data, String year, String month) {
+    final monthIndex = _monthNames.indexOf(month);
+    String prevYear = year;
+    int prevMonthIndex = monthIndex - 1;
+    if (prevMonthIndex < 0) {
+      prevMonthIndex = 11;
+      final y = int.tryParse(year);
+      prevYear = y != null ? (y - 1).toString() : year;
+    }
+    final prevMonth = _monthNames[prevMonthIndex];
+    final previousTotal = data.monthly[prevYear]?[prevMonth]?.total;
+    if (previousTotal == null) return null;
+    final currentTotal = data.monthly[year]?[month]?.total ?? 0.0;
+    return {
+      'previousTotal': previousTotal,
+      'prevMonth': prevMonth,
+      'diff': currentTotal - previousTotal,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -110,6 +128,8 @@ class DataScreenState extends State<DataScreen> {
                           children: [
                             _buildFilterRow(data, year),
                             const SizedBox(height: 14),
+                            _buildBudgetAlertCard(data, year, _selectedMonth),
+                            _buildTrendCard(data, year, _selectedMonth),
                             _buildWeeklyCard(data, year, _selectedMonth),
                             const SizedBox(height: 18),
                             _buildMonthlySection(data, year, _selectedMonth),
@@ -203,6 +223,100 @@ class DataScreenState extends State<DataScreen> {
               _selectedYear = v;
               _selectedWeekStart = null;
             }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetAlertCard(DashboardData data, String year, String month) {
+    if (data.budgets.isEmpty) return const SizedBox.shrink();
+    final categories = data.monthly[year]?[month]?.categories ?? {};
+    final overBudget = <MapEntry<String, double>>[];
+    for (final c in kCategories) {
+      final budget = data.budgets[c.name] ?? 0;
+      final spent = categories[c.name] ?? 0;
+      if (budget > 0 && spent > budget) {
+        overBudget.add(MapEntry(c.name, spent - budget));
+      }
+    }
+
+    if (overBudget.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(color: Colors.green.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.25))),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('All categories within budget for $month', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600, fontSize: 13))),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: Colors.red.withOpacity(0.06), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withOpacity(0.25))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+              const SizedBox(width: 8),
+              Text('Over budget in $month', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...overBudget.map((e) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text('${e.key}: ₹${e.value.toStringAsFixed(0)} over budget', style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrendCard(DashboardData data, String year, String month) {
+    final trend = _computeTrend(data, year, month);
+    if (trend == null) return const SizedBox.shrink();
+
+    final double diff = trend['diff'];
+    final double previousTotal = trend['previousTotal'];
+    final String prevMonth = trend['prevMonth'];
+    final bool increased = diff > 0.5;
+    final bool decreased = diff < -0.5;
+    final double percent = previousTotal > 0 ? (diff.abs() / previousTotal * 100) : 0;
+
+    final color = !increased && !decreased ? Colors.blueGrey : (increased ? Colors.redAccent : Colors.green);
+    final icon = !increased && !decreased ? Icons.remove_rounded : (increased ? Icons.trending_up_rounded : Icons.trending_down_rounded);
+    final label = !increased && !decreased
+        ? 'Same as $prevMonth'
+        : '${percent.toStringAsFixed(0)}% ${increased ? 'more' : 'less'} than $prevMonth';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.25))),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+                if (increased || decreased)
+                  Text('₹${diff.abs().toStringAsFixed(0)} ${increased ? 'more' : 'less'} spent', style: TextStyle(color: color.withOpacity(0.85), fontSize: 11)),
+              ],
+            ),
           ),
         ],
       ),

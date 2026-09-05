@@ -21,11 +21,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
   String? _lastError;
   Timer? _retryTimer;
   bool _retrying = false;
+  bool _loggedToday = true;
 
   @override
   void initState() {
     super.initState();
     _retryPending();
+    _checkLoggedToday();
     _retryTimer = Timer.periodic(const Duration(seconds: 8), (_) => _retryPending());
   }
 
@@ -33,6 +35,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void dispose() {
     _retryTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _checkLoggedToday() async {
+    final logged = await _storage.hasLoggedToday();
+    if (mounted) setState(() => _loggedToday = logged);
   }
 
   Future<void> _retryPending() async {
@@ -76,7 +83,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
             },
           ),
         )
-        .then((_) => _retryPending());
+        .then((_) {
+      _retryPending();
+      _checkLoggedToday();
+    });
   }
 
   void _openRecurring() {
@@ -110,9 +120,22 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                   ],
                 ),
+                if (!_loggedToday)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wb_twilight_rounded, size: 15, color: Color(0xFF6C63FF)),
+                        const SizedBox(width: 8),
+                        const Expanded(child: Text("Haven't logged anything today yet", style: TextStyle(color: Color(0xFF6C63FF), fontSize: 12, fontWeight: FontWeight.w600))),
+                      ],
+                    ),
+                  ),
                 if (_pendingCount > 0)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(bottom: 2),
                     child: Row(
                       children: [
                         const Icon(Icons.cloud_off_rounded, size: 15, color: Colors.orange),
@@ -123,10 +146,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   ),
                 if (_lastError != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: Text('Sync error: $_lastError', style: const TextStyle(color: Colors.red, fontSize: 10)),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {

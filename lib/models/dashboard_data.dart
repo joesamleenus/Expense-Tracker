@@ -1,3 +1,5 @@
+import 'recurring_template.dart';
+
 class MonthData {
   final double total;
   final Map<String, double> categories;
@@ -73,6 +75,7 @@ class DashboardData {
   final Map<String, double> budgets;
   final List<LogEntry> log;
   final List<NoteEntry> notes;
+  final List<RecurringTemplate> recurring;
   final DateTime lastUpdated;
 
   DashboardData({
@@ -83,6 +86,7 @@ class DashboardData {
     required this.budgets,
     required this.log,
     required this.notes,
+    required this.recurring,
     required this.lastUpdated,
   });
 
@@ -108,6 +112,7 @@ class DashboardData {
     final budgetsRaw = json['budgets'] as Map<String, dynamic>? ?? {};
     final logRaw = json['log'] as List<dynamic>? ?? [];
     final notesRaw = json['notes'] as List<dynamic>? ?? [];
+    final recurringRaw = json['recurring'] as List<dynamic>? ?? [];
 
     return DashboardData(
       years: List<String>.from(json['years'] ?? []),
@@ -117,6 +122,7 @@ class DashboardData {
       budgets: budgetsRaw.map((k, v) => MapEntry(k, (v as num).toDouble())),
       log: logRaw.map((e) => LogEntry.fromJson(e as Map<String, dynamic>)).toList(),
       notes: notesRaw.map((e) => NoteEntry.fromJson(e as Map<String, dynamic>)).toList(),
+      recurring: recurringRaw.map((e) => RecurringTemplate.fromJson(e as Map<String, dynamic>)).toList(),
       lastUpdated: DateTime.tryParse(json['lastUpdated'] ?? '') ?? DateTime.now(),
     );
   }
@@ -129,6 +135,7 @@ class DashboardData {
         'budgets': budgets,
         'log': log.map((e) => e.toJson()).toList(),
         'notes': notes.map((e) => e.toJson()).toList(),
+        'recurring': recurring.map((e) => e.toJson()).toList(),
         'lastUpdated': lastUpdated.toIso8601String(),
       };
 }

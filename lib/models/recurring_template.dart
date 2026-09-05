@@ -26,6 +26,6 @@ class RecurringTemplate {
         category: json['category'] as String,
         amount: (json['amount'] as num).toDouble(),
         notes: json['notes'] as String? ?? '',
-        lastLoggedMonth: json['lastLoggedMonth'] as String?,
+        lastLoggedMonth: (json['lastLoggedMonth'] as String?)?.isNotEmpty == true ? json['lastLoggedMonth'] as String? : null,
       );
 }

@@ -36,4 +36,10 @@ class RecurringService {
       await _saveAll(list);
     }
   }
+
+  // Called after every Fetch Data — replaces the local list with
+  // whatever the sheet has, keeping both sides in sync.
+  Future<void> replaceAll(List<RecurringTemplate> serverList) async {
+    await _saveAll(serverList);
+  }
 }

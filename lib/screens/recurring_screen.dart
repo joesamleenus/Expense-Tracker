@@ -5,6 +5,7 @@ import '../models/expense.dart';
 import '../services/recurring_service.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
+import '../services/data_service.dart';
 
 class RecurringScreen extends StatefulWidget {
   const RecurringScreen({super.key});
@@ -17,6 +18,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
   final _recurringService = RecurringService();
   final _storage = StorageService();
   final _sync = SyncService();
+  final _dataService = DataService();
   List<RecurringTemplate> _templates = [];
   bool _loading = true;
 
@@ -111,6 +113,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                           notes: notesController.text.trim(),
                         );
                         await _recurringService.add(template);
+                        _dataService.addRecurring(id: template.id, category: template.category, amount: template.amount, notes: template.notes);
                         if (mounted) Navigator.of(sheetContext).pop();
                         await _load();
                       },
@@ -142,6 +145,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
     );
     if (confirmed == true) {
       await _recurringService.remove(template.id);
+      _dataService.deleteRecurring(template.id);
       await _load();
     }
   }
@@ -159,6 +163,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
       if (ok) await _storage.removePending(expense);
     });
     await _recurringService.markLogged(template.id, _currentMonthKey);
+    _dataService.markRecurringLogged(id: template.id, monthKey: _currentMonthKey);
     if (mounted) {
       ScaffoldMessenger.of(rootContext).showSnackBar(
         SnackBar(content: Text('Logged for $_currentMonthName'), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating),
