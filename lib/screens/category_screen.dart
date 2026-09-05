@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import 'entry_screen.dart';
+import 'recurring_screen.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -78,6 +79,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
         .then((_) => _retryPending());
   }
 
+  void _openRecurring() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,10 +100,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('What did you spend on?', style: Theme.of(context).textTheme.headlineMedium),
+                Row(
+                  children: [
+                    Expanded(child: Text('What did you spend on?', style: Theme.of(context).textTheme.headlineMedium)),
+                    IconButton(
+                      icon: const Icon(Icons.repeat_rounded, color: Color(0xFF6C63FF)),
+                      onPressed: _openRecurring,
+                      tooltip: 'Recurring expenses',
+                    ),
+                  ],
+                ),
                 if (_pendingCount > 0)
                   Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 2),
                     child: Row(
                       children: [
                         const Icon(Icons.cloud_off_rounded, size: 15, color: Colors.orange),
