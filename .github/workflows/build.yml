@@ -25,6 +25,18 @@ jobs:
         run: |
           sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
+      - name: Set app display name to Zaldora
+        run: |
+          sed -i 's/android:label="[^"]*"/android:label="Zaldora"/' android/app/src/main/AndroidManifest.xml
+
+      - name: Apply Zaldora app icon
+        run: |
+          cp -f app_icon/mipmap-mdpi/*.png android/app/src/main/res/mipmap-mdpi/
+          cp -f app_icon/mipmap-hdpi/*.png android/app/src/main/res/mipmap-hdpi/
+          cp -f app_icon/mipmap-xhdpi/*.png android/app/src/main/res/mipmap-xhdpi/
+          cp -f app_icon/mipmap-xxhdpi/*.png android/app/src/main/res/mipmap-xxhdpi/
+          cp -f app_icon/mipmap-xxxhdpi/*.png android/app/src/main/res/mipmap-xxxhdpi/
+
       - name: Get dependencies
         run: flutter pub get
 

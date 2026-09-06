@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../theme/app_theme.dart';
 import '../models/dashboard_data.dart';
 import '../services/data_service.dart';
+import '../services/user_prefs_service.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -13,12 +14,14 @@ class DataScreen extends StatefulWidget {
 
 class _DataScreenState extends State<DataScreen> {
   final _dataService = DataService();
+  final _userPrefs = UserPrefsService();
   DashboardData? _data;
   bool _loading = false;
   String? _error;
   String? _selectedYear;
   String _selectedMonth = _monthNames[DateTime.now().month - 1];
   String? _selectedWeekStart;
+  String _name = '';
 
   static const _monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -29,6 +32,12 @@ class _DataScreenState extends State<DataScreen> {
   void initState() {
     super.initState();
     _loadCached();
+    _loadName();
+  }
+
+  Future<void> _loadName() async {
+    final name = await _userPrefs.getName();
+    if (mounted) setState(() => _name = name ?? '');
   }
 
   Future<void> _loadCached() async {
@@ -102,7 +111,7 @@ class _DataScreenState extends State<DataScreen> {
         : DateTime.now().year.toString();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
+      backgroundColor: AppTheme.warmBackground,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
@@ -119,26 +128,30 @@ class _DataScreenState extends State<DataScreen> {
                 ),
               const SizedBox(height: 14),
               Expanded(
-                child: data == null
-                    ? _buildEmptyState()
-                    : SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFilterRow(data, year),
-                            const SizedBox(height: 14),
-                            _buildBudgetAlertCard(data, year, _selectedMonth),
-                            _buildTrendCard(data, year, _selectedMonth),
-                            _buildWeeklyCard(data, year, _selectedMonth),
-                            const SizedBox(height: 18),
-                            _buildMonthlySection(data, year, _selectedMonth),
-                            const SizedBox(height: 18),
-                            _buildYearlySection(data, year),
-                            const SizedBox(height: 12),
-                          ],
+                child: RefreshIndicator(
+                  color: AppTheme.accent,
+                  onRefresh: _fetch,
+                  child: data == null
+                      ? _buildEmptyState()
+                      : SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFilterRow(data, year),
+                              const SizedBox(height: 14),
+                              _buildBudgetAlertCard(data, year, _selectedMonth),
+                              _buildTrendCard(data, year, _selectedMonth),
+                              _buildWeeklyCard(data, year, _selectedMonth),
+                              const SizedBox(height: 18),
+                              _buildMonthlySection(data, year, _selectedMonth),
+                              const SizedBox(height: 18),
+                              _buildYearlySection(data, year),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
                         ),
-                      ),
+                ),
               ),
             ],
           ),
@@ -157,7 +170,7 @@ class _DataScreenState extends State<DataScreen> {
               : const Icon(Icons.refresh_rounded, size: 18),
           label: Text(_loading ? 'Fetching...' : 'Fetch Data'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: AppTheme.accent,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -182,15 +195,25 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.insert_chart_outlined_rounded, size: 56, color: Colors.grey.shade400),
-          const SizedBox(height: 12),
-          Text('Tap "Fetch Data" to see your expenses', style: TextStyle(color: Colors.grey.shade600)),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.insert_chart_outlined_rounded, size: 56, color: Colors.grey.shade400),
+                  const SizedBox(height: 12),
+                  Text('Tap "Fetch Data" (or pull down) to see your expenses', style: TextStyle(color: Colors.grey.shade600)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -201,7 +224,7 @@ class _DataScreenState extends State<DataScreen> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))]),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month_rounded, size: 20, color: Color(0xFF6C63FF)),
+          const Icon(Icons.calendar_month_rounded, size: 20, color: AppTheme.accent),
           const SizedBox(width: 8),
           const Text('Viewing:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
           const SizedBox(width: 10),
@@ -240,6 +263,7 @@ class _DataScreenState extends State<DataScreen> {
         overBudget.add(MapEntry(c.name, spent - budget));
       }
     }
+    final namePrefix = _name.isNotEmpty ? '$_name, ' : '';
 
     if (overBudget.isEmpty) {
       return Container(
@@ -251,7 +275,7 @@ class _DataScreenState extends State<DataScreen> {
           children: [
             Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('All categories within budget for $month', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600, fontSize: 13))),
+            Expanded(child: Text('${namePrefix}all categories are within budget for $month', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600, fontSize: 13))),
           ],
         ),
       );
@@ -269,7 +293,7 @@ class _DataScreenState extends State<DataScreen> {
             children: [
               const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
               const SizedBox(width: 8),
-              Text('Over budget in $month', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 13)),
+              Expanded(child: Text('${namePrefix}you\'re over budget in $month', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 13))),
             ],
           ),
           const SizedBox(height: 8),
@@ -376,7 +400,7 @@ class _DataScreenState extends State<DataScreen> {
           if (weeks.isEmpty)
             const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No weeks with data in this month.', style: TextStyle(color: Colors.grey))))
           else ...[
-            Text('₹${selected!.total.toStringAsFixed(0)} total that week', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
+            Text('₹${selected!.total.toStringAsFixed(0)} total that week', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.accent)),
             const SizedBox(height: 16),
             if (entries.isEmpty)
               const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No expenses logged that week.', style: TextStyle(color: Colors.grey)))
@@ -421,7 +445,7 @@ class _DataScreenState extends State<DataScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Monthly breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-          Text('₹${total.toStringAsFixed(0)} total in $month', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
+          Text('₹${total.toStringAsFixed(0)} total in $month', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.accent)),
           const SizedBox(height: 16),
           if (entries.isEmpty)
             const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('No expenses recorded for this month.', style: TextStyle(color: Colors.grey))))
@@ -505,7 +529,7 @@ class _DataScreenState extends State<DataScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('$year overview', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-          Text('₹${total.toStringAsFixed(0)} total this year', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF6C63FF))),
+          Text('₹${total.toStringAsFixed(0)} total this year', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.accent)),
           const SizedBox(height: 16),
           SizedBox(
             height: 180,
@@ -524,7 +548,7 @@ class _DataScreenState extends State<DataScreen> {
                   return Padding(padding: const EdgeInsets.only(top: 6), child: Text(_monthNames[i].substring(0, 3), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600)));
                 })),
               ),
-              barGroups: [for (int i = 0; i < _monthNames.length; i++) BarChartGroupData(x: i, barRods: [BarChartRodData(toY: monthlyTotals[_monthNames[i]] ?? 0, color: const Color(0xFF6C63FF), width: 14, borderRadius: BorderRadius.circular(4))])],
+              barGroups: [for (int i = 0; i < _monthNames.length; i++) BarChartGroupData(x: i, barRods: [BarChartRodData(toY: monthlyTotals[_monthNames[i]] ?? 0, color: AppTheme.accent, width: 14, borderRadius: BorderRadius.circular(4))])],
             )),
           ),
           const SizedBox(height: 20),

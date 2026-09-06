@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
+import '../services/user_prefs_service.dart';
 import 'entry_screen.dart';
 import 'recurring_screen.dart';
 
@@ -17,15 +18,18 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   final _storage = StorageService();
   final _sync = SyncService();
+  final _userPrefs = UserPrefsService();
   int _pendingCount = 0;
   String? _lastError;
   Timer? _retryTimer;
   bool _retrying = false;
   bool _loggedToday = true;
+  String _name = '';
 
   @override
   void initState() {
     super.initState();
+    _loadName();
     _retryPending();
     _checkLoggedToday();
     _retryTimer = Timer.periodic(const Duration(seconds: 8), (_) => _retryPending());
@@ -35,6 +39,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void dispose() {
     _retryTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadName() async {
+    final name = await _userPrefs.getName();
+    if (mounted) setState(() => _name = name ?? '');
   }
 
   Future<void> _checkLoggedToday() async {
@@ -95,26 +104,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final greetingName = _name.isNotEmpty ? _name : '';
+    final headline = greetingName.isNotEmpty ? 'Hey $greetingName, I\'m listening...' : 'Hey there, I\'m listening...';
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFEDEBFF), Color(0xFFF7F7FB)],
+            colors: [Color(0xFFFFF1E6), Color(0xFFFBF8F5)],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('What did you spend on?', style: Theme.of(context).textTheme.headlineMedium)),
+                    Expanded(child: Text(headline, style: Theme.of(context).textTheme.headlineMedium)),
                     IconButton(
-                      icon: const Icon(Icons.repeat_rounded, color: Color(0xFF6C63FF)),
+                      icon: const Icon(Icons.repeat_rounded, color: AppTheme.accent),
                       onPressed: _openRecurring,
                       tooltip: 'Recurring expenses',
                     ),
@@ -124,12 +136,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
                     child: Row(
                       children: [
-                        const Icon(Icons.wb_twilight_rounded, size: 15, color: Color(0xFF6C63FF)),
+                        const Icon(Icons.wb_twilight_rounded, size: 15, color: AppTheme.accent),
                         const SizedBox(width: 8),
-                        const Expanded(child: Text("Haven't logged anything today yet", style: TextStyle(color: Color(0xFF6C63FF), fontSize: 12, fontWeight: FontWeight.w600))),
+                        Expanded(child: Text(greetingName.isNotEmpty ? "Don't forget to log today, $greetingName" : "Haven't logged anything today yet", style: const TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.w600))),
                       ],
                     ),
                   ),
@@ -178,6 +190,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         },
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: Text(
+                    'Crafted by Joe Sam Leenus',
+                    style: TextStyle(fontSize: 11, color: AppTheme.dark.withOpacity(0.35), fontWeight: FontWeight.w500),
                   ),
                 ),
               ],

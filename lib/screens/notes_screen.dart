@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../models/dashboard_data.dart';
 import '../services/data_service.dart';
 
@@ -58,8 +59,6 @@ class NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  Future<void> silentRefresh() => _fetch();
-
   Future<void> _saveNote() async {
     final text = _noteController.text.trim();
     if (text.isEmpty) return;
@@ -107,7 +106,7 @@ class NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) {
     final notes = _data?.notes ?? [];
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
+      backgroundColor: AppTheme.warmBackground,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -120,7 +119,7 @@ class NotesScreenState extends State<NotesScreen> {
                   IconButton(
                     icon: _loading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.refresh_rounded, color: Color(0xFF6C63FF)),
+                        : const Icon(Icons.refresh_rounded, color: AppTheme.accent),
                     onPressed: _loading ? null : _fetch,
                     tooltip: 'Fetch Data',
                   ),
@@ -149,7 +148,7 @@ class NotesScreenState extends State<NotesScreen> {
                             : const Icon(Icons.add_rounded, size: 18),
                         label: const Text('Save note'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6C63FF),
+                          backgroundColor: AppTheme.accent,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -160,45 +159,55 @@ class NotesScreenState extends State<NotesScreen> {
               ),
               const SizedBox(height: 14),
               Expanded(
-                child: notes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: RefreshIndicator(
+                  color: AppTheme.accent,
+                  onRefresh: _fetch,
+                  child: notes.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                           children: [
-                            Icon(Icons.sticky_note_2_rounded, size: 56, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text('No notes yet.', style: TextStyle(color: Colors.grey.shade600)),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        itemCount: notes.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final n = notes[index];
-                          return Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))]),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(n.text, style: const TextStyle(fontSize: 14)),
-                                      const SizedBox(height: 4),
-                                      Text(n.display, style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
-                                    ],
-                                  ),
-                                ),
-                                InkWell(onTap: () => _deleteNote(n), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent.withOpacity(0.7)))),
-                              ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 80),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.sticky_note_2_rounded, size: 56, color: Colors.grey.shade400),
+                                  const SizedBox(height: 12),
+                                  Text('No notes yet. Pull down to refresh.', style: TextStyle(color: Colors.grey.shade600)),
+                                ],
+                              ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.only(bottom: 16),
+                          itemCount: notes.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final n = notes[index];
+                            return Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))]),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(n.text, style: const TextStyle(fontSize: 14)),
+                                        const SizedBox(height: 4),
+                                        Text(n.display, style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                                      ],
+                                    ),
+                                  ),
+                                  InkWell(onTap: () => _deleteNote(n), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent.withOpacity(0.7)))),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
               ),
             ],
           ),

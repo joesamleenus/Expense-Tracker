@@ -8,7 +8,6 @@ class CategoryInfo {
   const CategoryInfo(this.name, this.icon, this.color);
 }
 
-// Your 9 categories — must match the dropdown/spelling in the Google Sheet exactly.
 const List<CategoryInfo> kCategories = [
   CategoryInfo('Rent', Icons.home_rounded, Color(0xFF6C63FF)),
   CategoryInfo('Subscriptions', Icons.repeat_rounded, Color(0xFF00BFA6)),
@@ -22,12 +21,17 @@ const List<CategoryInfo> kCategories = [
 ];
 
 class AppTheme {
+  // Colors extracted directly from the Zaldora logo artwork.
+  static const Color accent = Color(0xFFFE6E03);
+  static const Color dark = Color(0xFF35312D);
+  static const Color warmBackground = Color(0xFFFBF8F5);
+
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF7F7FB),
+      scaffoldBackgroundColor: warmBackground,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF6C63FF),
+        seedColor: accent,
         brightness: Brightness.light,
       ),
       textTheme: const TextTheme(

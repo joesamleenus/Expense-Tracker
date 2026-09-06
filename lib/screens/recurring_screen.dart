@@ -117,7 +117,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                         if (mounted) Navigator.of(sheetContext).pop();
                         await _load();
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C63FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ),
@@ -175,16 +175,16 @@ class _RecurringScreenState extends State<RecurringScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
+      backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F7FB),
+        backgroundColor: AppTheme.warmBackground,
         elevation: 0,
         foregroundColor: Colors.black87,
         title: const Text('Recurring Expenses', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAdd,
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: AppTheme.accent,
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
       body: SafeArea(

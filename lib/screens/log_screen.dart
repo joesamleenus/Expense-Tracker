@@ -60,9 +60,6 @@ class LogScreenState extends State<LogScreen> {
     }
   }
 
-  // Called automatically by the tab shell whenever you swipe or tap into this tab.
-  Future<void> silentRefresh() => _fetch();
-
   Color _colorForCategory(String name) {
     for (final c in kCategories) {
       if (c.name == name) return c.color;
@@ -153,7 +150,7 @@ class LogScreenState extends State<LogScreen> {
                                 setModalState(() => saving = false);
                               }
                             },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C63FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       child: saving
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Text('Save changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -198,7 +195,7 @@ class LogScreenState extends State<LogScreen> {
   Widget build(BuildContext context) {
     final entries = _filtered;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
+      backgroundColor: AppTheme.warmBackground,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -211,7 +208,7 @@ class LogScreenState extends State<LogScreen> {
                   IconButton(
                     icon: _loading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.refresh_rounded, color: Color(0xFF6C63FF)),
+                        : const Icon(Icons.refresh_rounded, color: AppTheme.accent),
                     onPressed: _loading ? null : _fetch,
                     tooltip: 'Fetch Data',
                   ),
@@ -233,68 +230,86 @@ class LogScreenState extends State<LogScreen> {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: _data == null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: RefreshIndicator(
+                  color: AppTheme.accent,
+                  onRefresh: _fetch,
+                  child: _data == null
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                           children: [
-                            Icon(Icons.receipt_long_rounded, size: 56, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text('Loading your history...', style: TextStyle(color: Colors.grey.shade600)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 80),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.receipt_long_rounded, size: 56, color: Colors.grey.shade400),
+                                  const SizedBox(height: 12),
+                                  Text('Pull down or tap refresh to load your history', style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center),
+                                ],
+                              ),
+                            ),
                           ],
-                        ),
-                      )
-                    : entries.isEmpty
-                        ? Center(child: Text(_query.isEmpty ? 'No expenses logged yet.' : 'No matches for "$_query"', style: const TextStyle(color: Colors.grey)))
-                        : ListView.separated(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            itemCount: entries.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final e = entries[index];
-                              final color = _colorForCategory(e.category);
-                              return Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))]),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                                      child: Icon(_iconForCategory(e.category), color: Colors.white, size: 18),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(e.category, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                          const SizedBox(height: 2),
-                                          Text(e.display, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                                          if (e.notes.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
-                                            Text(e.notes, style: TextStyle(color: Colors.grey.shade700, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                          ],
-                                        ],
+                        )
+                      : entries.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 80),
+                                  child: Center(child: Text(_query.isEmpty ? 'No expenses logged yet.' : 'No matches for "$_query"', style: const TextStyle(color: Colors.grey))),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              padding: const EdgeInsets.only(bottom: 16),
+                              itemCount: entries.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final e = entries[index];
+                                final color = _colorForCategory(e.category);
+                                return Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))]),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                                        child: Icon(_iconForCategory(e.category), color: Colors.white, size: 18),
                                       ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text('₹${e.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                                        Row(
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            InkWell(onTap: () => _openEdit(e), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.edit_rounded, size: 17, color: Colors.grey.shade500))),
-                                            InkWell(onTap: () => _confirmDelete(e), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.delete_outline_rounded, size: 17, color: Colors.redAccent.withOpacity(0.7)))),
+                                            Text(e.category, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                            const SizedBox(height: 2),
+                                            Text(e.display, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                                            if (e.notes.isNotEmpty) ...[
+                                              const SizedBox(height: 2),
+                                              Text(e.notes, style: TextStyle(color: Colors.grey.shade700, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                            ],
                                           ],
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text('₹${e.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                                          Row(
+                                            children: [
+                                              InkWell(onTap: () => _openEdit(e), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.edit_rounded, size: 17, color: Colors.grey.shade500))),
+                                              InkWell(onTap: () => _confirmDelete(e), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.delete_outline_rounded, size: 17, color: Colors.redAccent.withOpacity(0.7)))),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                ),
               ),
             ],
           ),

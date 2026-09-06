@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class CustomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -26,7 +27,7 @@ class CustomNavBar extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
-              BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.16), blurRadius: 22, offset: const Offset(0, 10)),
+              BoxShadow(color: AppTheme.accent.withOpacity(0.16), blurRadius: 22, offset: const Offset(0, 10)),
             ],
           ),
           child: LayoutBuilder(
@@ -43,7 +44,7 @@ class CustomNavBar extends StatelessWidget {
                     child: Container(
                       width: 44,
                       height: 44,
-                      decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.12), shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.12), shape: BoxShape.circle),
                     ),
                   ),
                   Row(
@@ -58,7 +59,7 @@ class CustomNavBar extends StatelessWidget {
                               scale: selected ? 1.18 : 1.0,
                               duration: const Duration(milliseconds: 220),
                               curve: Curves.easeOutBack,
-                              child: Icon(_items[i], color: selected ? const Color(0xFF6C63FF) : Colors.grey.shade400, size: 24),
+                              child: Icon(_items[i], color: selected ? AppTheme.accent : Colors.grey.shade400, size: 24),
                             ),
                           ),
                         ),
