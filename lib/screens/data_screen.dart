@@ -111,49 +111,57 @@ class _DataScreenState extends State<DataScreen> {
         : DateTime.now().year.toString();
 
     return Scaffold(
-      backgroundColor: AppTheme.warmBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Breakdown', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 10),
-              _buildFetchBar(),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text("Couldn't fetch: $_error", style: const TextStyle(color: Colors.red, fontSize: 12)),
-                ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: RefreshIndicator(
-                  color: AppTheme.accent,
-                  onRefresh: _fetch,
-                  child: data == null
-                      ? _buildEmptyState()
-                      : SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFilterRow(data, year),
-                              const SizedBox(height: 14),
-                              _buildBudgetAlertCard(data, year, _selectedMonth),
-                              _buildTrendCard(data, year, _selectedMonth),
-                              _buildWeeklyCard(data, year, _selectedMonth),
-                              const SizedBox(height: 18),
-                              _buildMonthlySection(data, year, _selectedMonth),
-                              const SizedBox(height: 18),
-                              _buildYearlySection(data, year),
-                              const SizedBox(height: 12),
-                            ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppTheme.backgroundGradient,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Breakdown', style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 10),
+                _buildFetchBar(),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text("Couldn't fetch: $_error", style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: RefreshIndicator(
+                    color: AppTheme.accent,
+                    onRefresh: _fetch,
+                    child: data == null
+                        ? _buildEmptyState()
+                        : SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFilterRow(data, year),
+                                const SizedBox(height: 14),
+                                _buildBudgetAlertCard(data, year, _selectedMonth),
+                                _buildTrendCard(data, year, _selectedMonth),
+                                _buildWeeklyCard(data, year, _selectedMonth),
+                                const SizedBox(height: 18),
+                                _buildMonthlySection(data, year, _selectedMonth),
+                                const SizedBox(height: 18),
+                                _buildYearlySection(data, year),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -205,9 +213,9 @@ class _DataScreenState extends State<DataScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.insert_chart_outlined_rounded, size: 56, color: Colors.grey.shade400),
+                  Icon(Icons.insert_chart_outlined_rounded, size: 56, color: AppTheme.dark.withOpacity(0.4)),
                   const SizedBox(height: 12),
-                  Text('Tap "Fetch Data" (or pull down) to see your expenses', style: TextStyle(color: Colors.grey.shade600)),
+                  Text('Tap "Fetch Data" (or pull down) to see your expenses', style: TextStyle(color: AppTheme.dark.withOpacity(0.6))),
                 ],
               ),
             ),
@@ -270,12 +278,12 @@ class _DataScreenState extends State<DataScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(color: Colors.green.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.25))),
+        decoration: BoxDecoration(color: Colors.green.withOpacity(0.10), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
         child: Row(
           children: [
-            Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 20),
+            Icon(Icons.check_circle_rounded, color: Colors.green.shade700, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: Text('${namePrefix}all categories are within budget for $month', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600, fontSize: 13))),
+            Expanded(child: Text('${namePrefix}all categories are within budget for $month', style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.w600, fontSize: 13))),
           ],
         ),
       );
@@ -285,7 +293,7 @@ class _DataScreenState extends State<DataScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.red.withOpacity(0.06), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withOpacity(0.25))),
+      decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withOpacity(0.3))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -299,7 +307,7 @@ class _DataScreenState extends State<DataScreen> {
           const SizedBox(height: 8),
           ...overBudget.map((e) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text('${e.key}: ₹${e.value.toStringAsFixed(0)} over budget', style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                child: Text('${e.key}: ₹${e.value.toStringAsFixed(0)} over budget', style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
               )),
         ],
       ),
@@ -327,7 +335,7 @@ class _DataScreenState extends State<DataScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.25))),
+      decoration: BoxDecoration(color: color.withOpacity(0.10), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.3))),
       child: Row(
         children: [
           Icon(icon, color: color, size: 22),
@@ -351,7 +359,7 @@ class _DataScreenState extends State<DataScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))]),
       child: child,
     );
   }

@@ -21,10 +21,10 @@ const List<CategoryInfo> kCategories = [
 ];
 
 class AppTheme {
-  // Colors extracted directly from the Zaldora logo artwork.
   static const Color accent = Color(0xFFFE6E03);
   static const Color dark = Color(0xFF35312D);
-  static const Color warmBackground = Color(0xFFFBF8F5);
+  static const Color warmBackground = Color(0xFFF3E6D5);
+  static const List<Color> backgroundGradient = [Color(0xFFF9E8D2), Color(0xFFF2E3D0)];
 
   static ThemeData get light {
     return ThemeData(

@@ -113,7 +113,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1E6), Color(0xFFFBF8F5)],
+            colors: AppTheme.backgroundGradient,
           ),
         ),
         child: SafeArea(
@@ -136,12 +136,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.55), borderRadius: BorderRadius.circular(12)),
                     child: Row(
                       children: [
                         const Icon(Icons.wb_twilight_rounded, size: 15, color: AppTheme.accent),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(greetingName.isNotEmpty ? "Don't forget to log today, $greetingName" : "Haven't logged anything today yet", style: const TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.w600))),
+                        Expanded(child: Text(greetingName.isNotEmpty ? "Don't forget to log today, $greetingName" : "Haven't logged anything today yet", style: const TextStyle(color: AppTheme.dark, fontSize: 12, fontWeight: FontWeight.w600))),
                       ],
                     ),
                   ),
@@ -150,9 +150,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Row(
                       children: [
-                        const Icon(Icons.cloud_off_rounded, size: 15, color: Colors.orange),
+                        const Icon(Icons.cloud_off_rounded, size: 15, color: Colors.deepOrange),
                         const SizedBox(width: 6),
-                        Text('$_pendingCount waiting to sync', style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                        Text('$_pendingCount waiting to sync', style: const TextStyle(color: Colors.deepOrange, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -192,11 +192,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Center(
-                  child: Text(
-                    'Crafted by Joe Sam Leenus',
-                    style: TextStyle(fontSize: 11, color: AppTheme.dark.withOpacity(0.35), fontWeight: FontWeight.w500),
+                  child: Column(
+                    children: [
+                      Text('CRAFTED BY', style: TextStyle(fontSize: 9, letterSpacing: 2.2, color: AppTheme.accent.withOpacity(0.9), fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Joe Sam Leenus',
+                        style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, fontWeight: FontWeight.w800, color: AppTheme.dark.withOpacity(0.8), letterSpacing: 0.3),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -259,7 +265,7 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard> with Singl
             curve: Curves.easeOut,
             child: Container(
               decoration: BoxDecoration(
-                color: widget.category.color.withOpacity(0.10),
+                color: Colors.white.withOpacity(0.55),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: widget.category.color.withOpacity(0.25)),
                 boxShadow: [
